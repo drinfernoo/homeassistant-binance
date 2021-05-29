@@ -21,7 +21,6 @@ binance:
 ```
 
 #### Configuration variables:
-
 | Key               | Type   | Required | Description                            | Default |
 | :---------------- | :----: | :------: |:-------------------------------------- | :-----: |
 | `name`            | string | No       | Name for the created sensors           | Binance |
@@ -32,7 +31,7 @@ binance:
 | `balances`        | array  | No       | List of coins for wallet balances      | -       |
 | `exchanges`       | array  | No       | List of pairs for exchange rates       | -       |
 
-### Full example configuration
+#### Full example configuration
 ```yaml
 binance:
   name: My Binance
@@ -55,25 +54,29 @@ This configuration will create the following entities in your Home Assistant ins
 - My Binance BTCUSD Exchange (`sensor.my_binance_btcusd_exchange`)
 - My Binance ETHUSD Exchange (`sensor.my_binance_ethusd_exchange`)
 
-### `name`
+### Configuration details
+---
+
+#### `name`
 The `name` you specify will be used as a prefix for all the sensors this integration creates. By default, the prefix is simply "Binance".
 
-### `domain`
+#### `domain`
 This integration is set up to query [Binance.us](https://www.binance.us/) by default. If you've registered your Binance account with a different domain, like [Binance.com](https://www.binance.com/), make sure to set this key in your configuration accordingly.
 
-### `api_key` and `api_secret`
+#### `api_key` and `api_secret`
 An API key and secret from Binance are **required** for this integration to function.  It is *highly recommended* to store your API key and secret in Home Assistant's `secrets.yaml` file.
 
-### `native_currency`
+#### `native_currency`
 Each balance sensor this integration creates will have a state attribute named `native_balance`, which represents the current value of the represented balance, converted to the currency specified by `native_currency`. The default native currency used for balance conversions is USD.
 
-### `balances`
+#### `balances`
 A list of coins (or currencies) can be specified here, and this integration will create a sensor for your current balance in each of them. By default (without adding this key), a sensor will be created for every coin that Binance offers (54 unique coins/currencies from Binance.us at this time). If one of the given coins isn't available from the specified domain, a sensor won't be created.
 
-### `exchanges`
+#### `exchanges`
 A list of exchange pairs can be specified here, and this integration will create a sensor for the current exchange rate between each of them. By default (without adding this key), a sensor will be created for every exchange pair that Binance offers (109 pairs from Binance.us at this time). If one of the given pairs isn't available from the specified domain, a sensor won't be created.
 
-### Example Card
+### Example Lovelace card
+---
 ![alt text](https://raw.githubusercontent.com/drinfernoo/homeassistant-binance/master/screenshots/example_card.png "Example Card")
 ```yaml
 type: vertical-stack
