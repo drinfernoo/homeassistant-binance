@@ -1,0 +1,8 @@
+{
+    "name": "Binance",
+    "domains": [
+        "sensor"
+    ],
+    "iot_class": "Cloud Polling",
+    "render_readme": true
+}
