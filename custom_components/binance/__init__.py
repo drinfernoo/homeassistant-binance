@@ -60,7 +60,7 @@ def setup(hass, config):
     balances = config[DOMAIN].get(CONF_BALANCES)
     tickers = config[DOMAIN].get(CONF_EXCHANGES)
     native_currency = config[DOMAIN].get(CONF_NATIVE_CURRENCY).upper()
-    tld = config[DOMAIN].get(CONF_DOMAIN)
+    tld = config[DOMAIN].get(CONF_DOMAIN).lower()
 
     hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld)
 
@@ -68,7 +68,7 @@ def setup(hass, config):
         pass
     else:
         for balance in binance_data.balances:
-            if not balances or balance["asset"] in balances:
+            if not balances or balance["asset"] in [i.upper() for i in balances]:
                 balance["name"] = name
                 balance["native"] = native_currency
                 load_platform(hass, "sensor", DOMAIN, balance, config)
@@ -77,7 +77,7 @@ def setup(hass, config):
         pass
     else:
         for ticker in binance_data.tickers:
-            if not tickers or ticker["symbol"] in tickers:
+            if not tickers or ticker["symbol"] in [i.upper() for i in tickers]:
                 ticker["name"] = name
                 load_platform(hass, "sensor", DOMAIN, ticker, config)
 
