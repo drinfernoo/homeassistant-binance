@@ -25,45 +25,50 @@ ATTR_NATIVE_BALANCE = "native_balance"
 DATA_BINANCE = "binance_cache"
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Setup the Binance sensors."""
 
     if discovery_info is None:
         return
-    if all(i in discovery_info for i in ["name", "asset", "free", "locked", "native"]):
-        name = discovery_info["name"]
-        asset = discovery_info["asset"]
-        free = discovery_info["free"]
-        locked = discovery_info["locked"]
-        native = discovery_info["native"]
+    if "balance" in discovery_info:
+        sensor = setup_balance_sensor(hass, discovery_info)
+    elif "ticker" in discovery_info:
+        sensor = setup_exchange_sensor(hass, discovery_info)
 
-        sensor = BinanceSensor(
-            hass.data[DATA_BINANCE], name, asset, free, locked, native
-        )
-    elif all(i in discovery_info for i in ["name", "symbol", "price"]):
-        name = discovery_info["name"]
-        symbol = discovery_info["symbol"]
-        price = discovery_info["price"]
-
-        sensor = BinanceExchangeSensor(hass.data[DATA_BINANCE], name, symbol, price)
-
-    add_entities([sensor], True)
+    async_add_entities([sensor], True)
 
 
-class BinanceSensor(SensorEntity):
+def setup_balance_sensor(hass, asset):
+    name = asset["name"]
+    balance = asset["balance"]
+    native = asset["native"]
+
+    return BinanceBalanceSensor(hass.data[DATA_BINANCE], name, balance, native)
+
+
+def setup_exchange_sensor(hass, exchange):
+    pair = exchange["ticker"]
+    name = exchange["name"]
+
+    return BinanceExchangeSensor(hass.data[DATA_BINANCE], name, pair)
+
+
+class BinanceBalanceSensor(SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, binance_data, name, asset, free, locked, native):
+    def __init__(self, binance_data, name, balance, native):
         """Initialize the sensor."""
         self._binance_data = binance_data
-        self._name = f"{name} {asset} Balance"
-        self._asset = asset
-        self._free = free
-        self._locked = locked
+
+        self._asset = balance["asset"]
+        self._free = balance["free"]
+        self._locked = balance["locked"]
         self._native = native
-        self._unit_of_measurement = asset
-        self._state = None
         self._native_balance = None
+
+        self._name = f"{name} {self._asset} Balance"
+        self._state = None
+        self._unit_of_measurement = self._asset
 
     @property
     def name(self):
@@ -96,38 +101,40 @@ class BinanceSensor(SensorEntity):
             ATTR_LOCKED: f"{self._locked} {self._unit_of_measurement}",
         }
 
-    def update(self):
+    async def async_update(self):
         """Update current values."""
-        self._binance_data.update()
-        for balance in self._binance_data.balances:
-            if balance["asset"] == self._asset:
-                self._state = balance["free"]
-                self._free = balance["free"]
-                self._locked = balance["locked"]
+        balance = await self._binance_data.async_get_balance(asset=self._asset)
+        if not balance:
+            return
 
-                if balance["asset"] == self._native:
-                    self._native_balance = round(float(balance["free"]), 2)
-                break
+        self._state = balance["free"]
+        self._free = balance["free"]
+        self._locked = balance["locked"]
 
-        for ticker in self._binance_data.tickers:
-            if ticker["symbol"] == self._asset + self._native:
+        if balance["asset"] == self._native:
+            self._native_balance = round(float(balance["free"]), 2)
+        else:
+            ticker = await self._binance_data.async_get_exchange(
+                pair=self._asset + self._native
+            )
+            if ticker:
                 self._native_balance = round(
                     float(ticker["price"]) * float(self._free), 2
                 )
-                break
 
 
 class BinanceExchangeSensor(SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, binance_data, name, symbol, price):
+    def __init__(self, binance_data, name, ticker):
         """Initialize the sensor."""
         self._binance_data = binance_data
-        self._name = f"{name} {symbol} Exchange"
-        self._symbol = symbol
-        self._price = price
-        self._unit_of_measurement = None
+        self._symbol = ticker["symbol"]
+        self._price = ticker["price"]
+
+        self._name = f"{name} {self._symbol} Exchange"
         self._state = None
+        self._unit_of_measurement = self._decide_unit(self._symbol)
 
     @property
     def name(self):
@@ -157,14 +164,16 @@ class BinanceExchangeSensor(SensorEntity):
             ATTR_ATTRIBUTION: ATTRIBUTION,
         }
 
-    def update(self):
+    def _decide_unit(self, pair):
+        if pair[-4:] in QUOTE_ASSETS[2:5]:
+            return pair[-4:]
+        elif pair[-3:] in QUOTE_ASSETS[:2]:
+            return pair[-3:]
+
+    async def async_update(self):
         """Update current values."""
-        self._binance_data.update()
-        for ticker in self._binance_data.tickers:
-            if ticker["symbol"] == self._symbol:
-                self._state = ticker["price"]
-                if ticker["symbol"][-4:] in QUOTE_ASSETS[2:5]:
-                    self._unit_of_measurement = ticker["symbol"][-4:]
-                elif ticker["symbol"][-3:] in QUOTE_ASSETS[:2]:
-                    self._unit_of_measurement = ticker["symbol"][-3:]
-                break
+        ticker = await self._binance_data.async_get_exchange(pair=self._symbol)
+        if not ticker:
+            return
+
+        self._state = ticker["price"]

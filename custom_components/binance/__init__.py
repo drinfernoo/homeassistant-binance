@@ -1,7 +1,7 @@
 from datetime import timedelta
 import logging
 
-from binance.client import Client
+from binance.client import AsyncClient
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 import voluptuous as vol
 
@@ -53,7 +53,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-def setup(hass, config):
+async def async_setup(hass, config):
     api_key = config[DOMAIN][CONF_API_KEY]
     api_secret = config[DOMAIN][CONF_API_SECRET]
     name = config[DOMAIN].get(CONF_NAME)
@@ -62,24 +62,63 @@ def setup(hass, config):
     native_currency = config[DOMAIN].get(CONF_NATIVE_CURRENCY).upper()
     tld = config[DOMAIN].get(CONF_DOMAIN).lower()
 
-    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld)
+    binance_data = BinanceData(api_key, api_secret, tld)
+    hass.data[DATA_BINANCE] = binance_data
 
-    if not hasattr(binance_data, "balances"):
-        pass
+    if not balances:
+        response = await binance_data.async_get_balance(all=True)
+        if response:
+            for balance in response:
+                load_platform(
+                    hass,
+                    "sensor",
+                    DOMAIN,
+                    {"balance": balance, "name": name, "native": native_currency},
+                    config,
+                )
     else:
-        for balance in binance_data.balances:
-            if not balances or balance["asset"] in [i.upper() for i in balances]:
-                balance["name"] = name
-                balance["native"] = native_currency
-                load_platform(hass, "sensor", DOMAIN, balance, config)
+        _LOGGER.info(f"Initializing balance sensors for {balances}")
+        for balance in [i.upper() for i in balances]:
+            response = await binance_data.async_get_balance(asset=balance)
+            if response:
+                load_platform(
+                    hass,
+                    "sensor",
+                    DOMAIN,
+                    {
+                        "balance": response,
+                        "name": name,
+                        "native": native_currency,
+                    },
+                    config,
+                )
 
-    if not hasattr(binance_data, "tickers"):
-        pass
+    if not tickers:
+        response = await binance_data.async_get_exchange(all=True)
+        if response:
+            for ticker in response:
+                load_platform(
+                    hass,
+                    "sensor",
+                    DOMAIN,
+                    {"ticker": ticker, "name": name},
+                    config,
+                )
     else:
-        for ticker in binance_data.tickers:
-            if not tickers or ticker["symbol"] in [i.upper() for i in tickers]:
-                ticker["name"] = name
-                load_platform(hass, "sensor", DOMAIN, ticker, config)
+        _LOGGER.info(f"Initializing exchange sensors for {tickers}")
+        for ticker in [i.upper() for i in tickers]:
+            response = await binance_data.async_get_exchange(pair=ticker)
+            if response:
+                load_platform(
+                    hass,
+                    "sensor",
+                    DOMAIN,
+                    {
+                        "ticker": response,
+                        "name": name,
+                    },
+                    config,
+                )
 
     return True
 
@@ -87,26 +126,65 @@ def setup(hass, config):
 class BinanceData:
     def __init__(self, api_key, api_secret, tld):
         """Initialize."""
-        self.client = Client(api_key, api_secret, tld=tld)
-        self.balances = []
-        self.tickers = {}
-        self.tld = tld
-        self.update()
+        self._api_key = api_key
+        self._api_secret = api_secret
+        self._tld = tld
+
+    async def async_connect(self):
+        try:
+            _LOGGER.debug(f"Connecting to binance.{self._tld}")
+            client = await AsyncClient.create(
+                self._api_key, self._api_secret, tld=self._tld
+            )
+        except (BinanceAPIException, BinanceRequestException) as e:
+            _LOGGER.error(f"Error connecting to binance.{self._tld}: {e.message}")
+            return None
+
+        return client
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self):
-        _LOGGER.debug(f"Fetching data from binance.{self.tld}")
-        try:
-            account_info = self.client.get_account()
-            balances = account_info.get("balances", [])
-            if balances:
-                self.balances = balances
-                _LOGGER.debug(f"Balances updated from binance.{self.tld}")
+    async def async_get_balance(self, asset=None, all=False):
+        response = {}
+        client = await self.async_connect()
+        if client:
+            try:
+                if asset and not all:
+                    _LOGGER.debug(
+                        f"Fetching balance for {asset} from binance.{self._tld}"
+                    )
+                    response = await client.get_asset_balance(asset=asset)
+                elif all:
+                    _LOGGER.debug(f"Fetching balances from binance.{self._tld}")
+                    account_info = await client.get_account()
+                    response = account_info.get("balances", [])
+            except (BinanceAPIException, BinanceRequestException) as e:
+                _LOGGER.error(
+                    f"Error fetching data from binance.{self._tld}: {e.message}"
+                )
+            finally:
+                await client.close_connection()
 
-            prices = self.client.get_all_tickers()
-            if prices:
-                self.tickers = prices
-                _LOGGER.debug(f"Exchange rates updated from binance.{self.tld}")
-        except (BinanceAPIException, BinanceRequestException) as e:
-            _LOGGER.error(f"Error fetching data from binance.{self.tld}: {e.message}")
-            return False
+        return response
+
+    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    async def async_get_exchange(self, pair=None, all=False):
+        response = {}
+        client = await self.async_connect()
+        if client:
+            try:
+                if pair and not all:
+                    _LOGGER.debug(
+                        f"Fetching exchange rate for {pair} from binance.{self._tld}"
+                    )
+                    response = await client.get_all_tickers(symbol=pair)
+                elif all:
+                    _LOGGER.debug(f"Fetching exchange rates from binance.{self._tld}")
+                    response = await client.get_all_tickers()
+            except (BinanceAPIException, BinanceRequestException) as e:
+                _LOGGER.error(
+                    f"Error fetching data from binance.{self._tld}: {e.message}"
+                )
+            finally:
+                await client.close_connection()
+
+        return response
