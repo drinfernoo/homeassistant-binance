@@ -24,8 +24,8 @@ CONF_EXCHANGES = "exchanges"
 CONF_DOMAIN = "domain"
 CONF_NATIVE_CURRENCY = "native_currency"
 
-SCAN_INTERVAL = timedelta(minutes=1)
-MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
+# SCAN_INTERVAL = timedelta(seconds=5)
+# MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
 
 DATA_BINANCE = "binance_cache"
 
@@ -150,7 +150,7 @@ class BinanceData:
 
         return client
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    # @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_get_balance(self, asset=None, all=False):
         response = {}
         client = await self.async_connect()
@@ -174,7 +174,7 @@ class BinanceData:
 
         return response
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    # @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_get_exchange(self, pair=None, all=False):
         response = {}
         client = await self.async_connect()
