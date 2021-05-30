@@ -7,7 +7,7 @@ import voluptuous as vol
 
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.discovery import load_platform
+from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.util import Throttle
 
 __version__ = "1.0.0"
@@ -69,55 +69,63 @@ async def async_setup(hass, config):
         response = await binance_data.async_get_balance(all=True)
         if response:
             for balance in response:
-                load_platform(
-                    hass,
-                    "sensor",
-                    DOMAIN,
-                    {"balance": balance, "name": name, "native": native_currency},
-                    config,
+                hass.async_create_task(
+                    async_load_platform(
+                        hass,
+                        "sensor",
+                        DOMAIN,
+                        {"balance": balance, "name": name, "native": native_currency},
+                        config,
+                    )
                 )
     else:
         _LOGGER.info(f"Initializing balance sensors for {balances}")
         for balance in [i.upper() for i in balances]:
             response = await binance_data.async_get_balance(asset=balance)
             if response:
-                load_platform(
-                    hass,
-                    "sensor",
-                    DOMAIN,
-                    {
-                        "balance": response,
-                        "name": name,
-                        "native": native_currency,
-                    },
-                    config,
+                hass.async_create_task(
+                    async_load_platform(
+                        hass,
+                        "sensor",
+                        DOMAIN,
+                        {
+                            "balance": response,
+                            "name": name,
+                            "native": native_currency,
+                        },
+                        config,
+                    )
                 )
 
     if not tickers:
         response = await binance_data.async_get_exchange(all=True)
         if response:
             for ticker in response:
-                load_platform(
-                    hass,
-                    "sensor",
-                    DOMAIN,
-                    {"ticker": ticker, "name": name},
-                    config,
+                hass.async_create_task(
+                    async_load_platform(
+                        hass,
+                        "sensor",
+                        DOMAIN,
+                        {"ticker": ticker, "name": name},
+                        config,
+                    )
                 )
     else:
         _LOGGER.info(f"Initializing exchange sensors for {tickers}")
         for ticker in [i.upper() for i in tickers]:
             response = await binance_data.async_get_exchange(pair=ticker)
             if response:
-                load_platform(
-                    hass,
-                    "sensor",
-                    DOMAIN,
-                    {
-                        "ticker": response,
-                        "name": name,
-                    },
-                    config,
+                hass.async_create_task(
+                    async_load_platform(
+                        hass,
+                        "sensor",
+                        DOMAIN,
+                        {
+                            "ticker": response,
+                            "name": name,
+                        },
+                        config,
+                    )
                 )
 
     return True
