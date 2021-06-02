@@ -10,7 +10,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import Throttle
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 REQUIREMENTS = ["python-binance==1.0.10"]
 
 DOMAIN = "binance"
