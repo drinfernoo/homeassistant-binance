@@ -7,7 +7,7 @@ from homeassistant.components.sensor import SensorEntity
 
 CURRENCY_ICONS = {
     "BTC": "mdi:currency-btc",
-    "ETH": "mdi:currency-eth",
+    "ETH": "mdi:ethereum",
     "EUR": "mdi:currency-eur",
     "LTC": "mdi:litecoin",
     "USD": "mdi:currency-usd",
@@ -15,7 +15,7 @@ CURRENCY_ICONS = {
 
 QUOTE_ASSETS = ["USD", "BTC", "USDT", "BUSD", "USDC"]
 
-DEFAULT_COIN_ICON = "mdi:currency-usd-circle"
+DEFAULT_COIN_ICON = "mdi:currency-usd"
 
 ATTRIBUTION = "Data provided by Binance"
 ATTR_FREE = "free"

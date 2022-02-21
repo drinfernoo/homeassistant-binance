@@ -9,6 +9,7 @@
     "@drinfernoo"
   ],
   "requirements": [
-    "python-binance==1.0.10"
+    "python-binance==1.0.10",
+    "binance-connector==1.10.0"
   ]
 }
