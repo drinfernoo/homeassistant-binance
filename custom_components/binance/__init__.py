@@ -1,6 +1,7 @@
 from datetime import timedelta
 import logging
 
+from binance.spot import Spot
 from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 import voluptuous as vol
@@ -11,7 +12,7 @@ from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import Throttle
 
 __version__ = "1.0.1"
-REQUIREMENTS = ["python-binance==1.0.10"]
+REQUIREMENTS = ["python-binance==1.0.10","binance-connector==1.10.0"]
 
 DOMAIN = "binance"
 
@@ -88,6 +89,7 @@ class BinanceData:
     def __init__(self, api_key, api_secret, tld):
         """Initialize."""
         self.client = Client(api_key, api_secret, tld=tld)
+        self.clientSpot = Spot(key=api_key, secret=api_secret)
         self.balances = []
         self.tickers = {}
         self.tld = tld
@@ -97,8 +99,9 @@ class BinanceData:
     def update(self):
         _LOGGER.debug(f"Fetching data from binance.{self.tld}")
         try:
-            account_info = self.client.get_account()
-            balances = account_info.get("balances", [])
+            # account_info = self.client.get_account()
+            # balances = account_info.get("balances", [])
+            balances = self.clientSpot.funding_wallet()
             if balances:
                 self.balances = balances
                 _LOGGER.debug(f"Balances updated from binance.{self.tld}")
