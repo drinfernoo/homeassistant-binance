@@ -125,7 +125,7 @@ class BinanceExchangeSensor(SensorEntity):
         self._binance_data = binance_data
         self._name = f"{name} {symbol} Exchange"
         self._symbol = symbol
-        self._price = price
+        self._price = round(float(price), 2)
         self._unit_of_measurement = None
         self._state = None
 
