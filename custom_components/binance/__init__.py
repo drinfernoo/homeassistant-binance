@@ -25,7 +25,7 @@ CONF_BALANCES = "balances"
 CONF_EXCHANGES = "exchanges"
 CONF_DOMAIN = "domain"
 CONF_NATIVE_CURRENCY = "native_currency"
-CONF_WALLET_TYPE = "wallets_type"
+CONF_WALLET_TYPE = "wallet_type"
 
 SCAN_INTERVAL = timedelta(minutes=1)
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
@@ -65,9 +65,9 @@ def setup(hass, config):
     tickers = config[DOMAIN].get(CONF_EXCHANGES)
     native_currency = config[DOMAIN].get(CONF_NATIVE_CURRENCY).upper()
     tld = config[DOMAIN].get(CONF_DOMAIN)
-    wallets_type = config[DOMAIN].get(CONF_WALLET_TYPE)
+    wallet_type = config[DOMAIN].get(CONF_WALLET_TYPE)
 
-    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld, wallets_type)
+    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld, wallet_type)
 
     if not hasattr(binance_data, "balances"):
         pass
@@ -90,28 +90,28 @@ def setup(hass, config):
 
 
 class BinanceData:
-    def __init__(self, api_key, api_secret, tld, wallets_type):
+    def __init__(self, api_key, api_secret, tld, wallet_type):
         """Initialize."""
         self.client = Client(api_key, api_secret, tld=tld)
         self.clientSpot = Spot(key=api_key, secret=api_secret)
         self.balances = []
         self.tickers = {}
         self.tld = tld
-        self.wallets_type = wallets_type
+        self.wallet_type = wallet_type
         self.update()
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self):
         _LOGGER.debug(f"Fetching data from binance.{self.tld}")
         try:
-            if self.wallets_type == "FUNDING":
+            if self.wallet_type == "FUNDING":
                 balances = self.clientSpot.funding_wallet()
             else:
                 account_info = self.client.get_account()
                 balances = account_info.get("balances", [])
             if balances:
                 self.balances = balances
-                _LOGGER.debug(f"{wallets_type} Balances updated from binance.{self.tld}")
+                _LOGGER.debug(f"{wallet_type} Balances updated from binance.{self.tld}")
 
             prices = self.client.get_all_tickers()
             if prices:
