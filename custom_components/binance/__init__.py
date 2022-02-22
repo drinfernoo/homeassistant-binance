@@ -90,9 +90,9 @@ def setup(hass, config):
 
 
 class BinanceData:
-    def __init__(self, api_key, api_secret, tld):
+    def __init__(self, api_key, api_secret, tld, wallets_type):
         """Initialize."""
-        self.client = Client(api_key, api_secret, tld=tld, wallets_type)
+        self.client = Client(api_key, api_secret, tld=tld)
         self.clientSpot = Spot(key=api_key, secret=api_secret)
         self.balances = []
         self.tickers = {}
