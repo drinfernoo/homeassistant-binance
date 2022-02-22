@@ -67,7 +67,7 @@ def setup(hass, config):
     tld = config[DOMAIN].get(CONF_DOMAIN)
     wallets_type = config[DOMAIN].get(CONF_WALLET_TYPE)
 
-    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld)
+    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld, wallets_type)
 
     if not hasattr(binance_data, "balances"):
         pass
@@ -92,18 +92,19 @@ def setup(hass, config):
 class BinanceData:
     def __init__(self, api_key, api_secret, tld):
         """Initialize."""
-        self.client = Client(api_key, api_secret, tld=tld)
+        self.client = Client(api_key, api_secret, tld=tld, wallets_type)
         self.clientSpot = Spot(key=api_key, secret=api_secret)
         self.balances = []
         self.tickers = {}
         self.tld = tld
+        self.wallets_type = wallets_type
         self.update()
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self):
         _LOGGER.debug(f"Fetching data from binance.{self.tld}")
         try:
-            if wallets_type == "FUNDING":
+            if self.wallets_type == "FUNDING":
                 balances = self.clientSpot.funding_wallet()
             else:
                 account_info = self.client.get_account()
