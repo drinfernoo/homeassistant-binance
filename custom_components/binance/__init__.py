@@ -12,18 +12,20 @@ from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import Throttle
 
 __version__ = "1.0.1"
-REQUIREMENTS = ["python-binance==1.0.10","binance-connector==1.10.0"]
+REQUIREMENTS = ["python-binance==1.0.10", "binance-connector==1.10.0"]
 
 DOMAIN = "binance"
 
 DEFAULT_NAME = "Binance"
 DEFAULT_DOMAIN = "us"
 DEFAULT_CURRENCY = "USD"
+DEFAULT_WALLET_TYPE = "SPOT"
 CONF_API_SECRET = "api_secret"
 CONF_BALANCES = "balances"
 CONF_EXCHANGES = "exchanges"
 CONF_DOMAIN = "domain"
 CONF_NATIVE_CURRENCY = "native_currency"
+CONF_WALLET_TYPE = "wallets_type"
 
 SCAN_INTERVAL = timedelta(minutes=1)
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
@@ -38,6 +40,7 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
                 vol.Optional(CONF_DOMAIN, default=DEFAULT_DOMAIN): cv.string,
+                vol.Optional(CONF_WALLET_TYPE, default=DEFAULT_WALLET_TYPE): cv.string,
                 vol.Optional(CONF_NATIVE_CURRENCY, default=DEFAULT_CURRENCY): cv.string,
                 vol.Required(CONF_API_KEY): cv.string,
                 vol.Required(CONF_API_SECRET): cv.string,
@@ -62,6 +65,7 @@ def setup(hass, config):
     tickers = config[DOMAIN].get(CONF_EXCHANGES)
     native_currency = config[DOMAIN].get(CONF_NATIVE_CURRENCY).upper()
     tld = config[DOMAIN].get(CONF_DOMAIN)
+    wallets_type = config[DOMAIN].get(CONF_WALLET_TYPE)
 
     hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld)
 
@@ -99,12 +103,14 @@ class BinanceData:
     def update(self):
         _LOGGER.debug(f"Fetching data from binance.{self.tld}")
         try:
-            # account_info = self.client.get_account()
-            # balances = account_info.get("balances", [])
-            balances = self.clientSpot.funding_wallet()
+            if wallets_type == "FUNDING":
+                balances = self.clientSpot.funding_wallet()
+            else:
+                account_info = self.client.get_account()
+                balances = account_info.get("balances", [])
             if balances:
                 self.balances = balances
-                _LOGGER.debug(f"Balances updated from binance.{self.tld}")
+                _LOGGER.debug(f"{wallets_type} Balances updated from binance.{self.tld}")
 
             prices = self.client.get_all_tickers()
             if prices:
