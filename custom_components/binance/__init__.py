@@ -40,8 +40,8 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
                 vol.Optional(CONF_DOMAIN, default=DEFAULT_DOMAIN): cv.string,
-                vol.Optional(CONF_WALLET_TYPE, default=DEFAULT_WALLET_TYPE): cv.string,
                 vol.Optional(CONF_NATIVE_CURRENCY, default=DEFAULT_CURRENCY): cv.string,
+                vol.Optional(CONF_WALLET_TYPE, default=DEFAULT_WALLET_TYPE): cv.string,
                 vol.Required(CONF_API_KEY): cv.string,
                 vol.Required(CONF_API_SECRET): cv.string,
                 vol.Optional(CONF_BALANCES, default=[]): vol.All(
@@ -111,7 +111,7 @@ class BinanceData:
                 balances = account_info.get("balances", [])
             if balances:
                 self.balances = balances
-                _LOGGER.debug(f"{wallet_type} Balances updated from binance.{self.tld}")
+                _LOGGER.debug(f"{self.wallet_type} Balances updated from binance.{self.tld}")
 
             prices = self.client.get_all_tickers()
             if prices:
