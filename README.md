@@ -26,6 +26,7 @@ binance:
 | `name`            | string | No       | Name for the created sensors           | Binance |
 | `domain`          | string | No       | Binance domain to query                | us      |
 | `native_currency` | string | No       | Native currency for price calculations | USD     |
+| `wallet_type`     | string | No       | Binance wallet to query                | SPOT    |
 | `api_key`         | string | Yes      | Binance API key                        | -       |
 | `api_secret`      | string | Yes      | Binance API secret                     | -       |
 | `balances`        | array  | No       | List of coins for wallet balances      | -       |
@@ -37,6 +38,7 @@ binance:
   name: My Binance
   domain: us
   native_currency: USD
+  wallet_type: SPOT
   api_key: !secret binance_api_key
   api_secret: !secret binance_api_secret
   balances:
@@ -63,6 +65,9 @@ The `name` you specify will be used as a prefix for all the sensors this integra
 #### `domain`
 This integration is set up to query [Binance.us](https://www.binance.us/) by default. If you've registered your Binance account with a different domain, like [Binance.com](https://www.binance.com/), make sure to set this key in your configuration accordingly.
 
+#### `wallet_type`
+This option allow you to use funding_wallet. Set its value to FUNDING to use your funding wallet. The default wallet is SPOT
+
 #### `api_key` and `api_secret`
 An API key and secret from Binance are **required** for this integration to function.  It is *highly recommended* to store your API key and secret in Home Assistant's `secrets.yaml` file.
 
@@ -77,7 +82,7 @@ A list of exchange pairs can be specified here, and this integration will create
 
 ### Example Lovelace card
 ---
-![alt text](https://raw.githubusercontent.com/drinfernoo/homeassistant-binance/master/screenshots/example_card.png "Example Card")
+![alt text](https://raw.githubusercontent.com/sorlinv/homeassistant-binance/master/screenshots/example_card.png "Example Card")
 ```yaml
 type: vertical-stack
 cards:
