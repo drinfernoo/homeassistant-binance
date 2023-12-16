@@ -1,7 +1,6 @@
 """
 Binance exchange sensor
 """
-
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.components.sensor import SensorEntity
 
@@ -12,6 +11,8 @@ CURRENCY_ICONS = {
     "LTC": "mdi:litecoin",
     "USD": "mdi:currency-usd",
 }
+
+DOMAIN = "binance"
 
 QUOTE_ASSETS = ["USD", "BTC", "USDT", "BUSD", "USDC"]
 
@@ -30,22 +31,24 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     if discovery_info is None:
         return
-    if all(i in discovery_info for i in ["name", "asset", "free", "locked", "native"]):
-        name = discovery_info["name"]
+
+    instance_name = discovery_info.get("name")
+    binance_data = hass.data[DOMAIN][instance_name]
+
+    if all(i in discovery_info for i in ["asset", "free", "locked", "native"]):
         asset = discovery_info["asset"]
         free = discovery_info["free"]
         locked = discovery_info["locked"]
         native = discovery_info["native"]
 
         sensor = BinanceSensor(
-            hass.data[DATA_BINANCE], name, asset, free, locked, native
+            binance_data, instance_name, asset, free, locked, native
         )
-    elif all(i in discovery_info for i in ["name", "symbol", "price"]):
-        name = discovery_info["name"]
+    elif all(i in discovery_info for i in ["symbol", "price"]):
         symbol = discovery_info["symbol"]
         price = discovery_info["price"]
 
-        sensor = BinanceExchangeSensor(hass.data[DATA_BINANCE], name, symbol, price)
+        sensor = BinanceExchangeSensor(binance_data, instance_name, symbol, price)
 
     add_entities([sensor], True)
 
