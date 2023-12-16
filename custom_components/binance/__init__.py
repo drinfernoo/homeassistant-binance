@@ -70,18 +70,27 @@ def setup(hass, config):
         if hasattr(binance_data, "balances"):
             for balance in binance_data.balances:
                 if not balances or balance["asset"] in balances:
-                    balance["name"] = name
-                    balance["native"] = native_currency
-                    load_platform(hass, "sensor", DOMAIN, balance, instance)
+                    balance_info = {
+                        "name": name,
+                        "asset": balance["asset"],
+                        "free": balance["free"],
+                        "locked": balance["locked"],
+                        "native": native_currency
+                    }
+                    load_platform(hass, "sensor", DOMAIN, balance_info, instance)
 
-        if hasattr(binance_data, "tickers"):
-            for ticker in binance_data.tickers:
-                if not tickers or ticker["symbol"] in tickers:
-                    ticker["name"] = name
-                    load_platform(hass, "sensor", DOMAIN, ticker, instance)
+        if tickers and len(tickers) > 0:
+            if hasattr(binance_data, "tickers"):
+                for ticker in binance_data.tickers:
+                    if ticker["symbol"] in tickers:
+                        ticker_info = {
+                            "name": name,
+                            "symbol": ticker["symbol"],
+                            "price": ticker["price"]
+                        }
+                        load_platform(hass, "sensor", DOMAIN, ticker_info, instance)
 
     return True
-
 
 class BinanceData:
     def __init__(self, api_key, api_secret, tld):
