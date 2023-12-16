@@ -24,8 +24,8 @@ CONF_EXCHANGES = "exchanges"
 CONF_DOMAIN = "domain"
 CONF_NATIVE_CURRENCY = "native_currency"
 
-SCAN_INTERVAL = timedelta(minutes=1)
-MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
+SCAN_INTERVAL= timedelta(seconds=1)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=1)
 
 DATA_BINANCE = "binance_cache"
 
