@@ -31,55 +31,54 @@ DATA_BINANCE = "binance_cache"
 
 _LOGGER = logging.getLogger(__name__)
 
+INSTANCE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+        vol.Optional(CONF_DOMAIN, default=DEFAULT_DOMAIN): cv.string,
+        vol.Optional(CONF_NATIVE_CURRENCY, default=DEFAULT_CURRENCY): cv.string,
+        vol.Required(CONF_API_KEY): cv.string,
+        vol.Required(CONF_API_SECRET): cv.string,
+        vol.Optional(CONF_BALANCES, default=[]): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(CONF_EXCHANGES, default=[]): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
 CONFIG_SCHEMA = vol.Schema(
     {
-        DOMAIN: vol.Schema(
-            {
-                vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-                vol.Optional(CONF_DOMAIN, default=DEFAULT_DOMAIN): cv.string,
-                vol.Optional(CONF_NATIVE_CURRENCY, default=DEFAULT_CURRENCY): cv.string,
-                vol.Required(CONF_API_KEY): cv.string,
-                vol.Required(CONF_API_SECRET): cv.string,
-                vol.Optional(CONF_BALANCES, default=[]): vol.All(
-                    cv.ensure_list, [cv.string]
-                ),
-                vol.Optional(CONF_EXCHANGES, default=[]): vol.All(
-                    cv.ensure_list, [cv.string]
-                ),
-            }
-        )
+        DOMAIN: vol.All(cv.ensure_list, [INSTANCE_SCHEMA])
     },
     extra=vol.ALLOW_EXTRA,
 )
 
 
 def setup(hass, config):
-    api_key = config[DOMAIN][CONF_API_KEY]
-    api_secret = config[DOMAIN][CONF_API_SECRET]
-    name = config[DOMAIN].get(CONF_NAME)
-    balances = config[DOMAIN].get(CONF_BALANCES)
-    tickers = config[DOMAIN].get(CONF_EXCHANGES)
-    native_currency = config[DOMAIN].get(CONF_NATIVE_CURRENCY).upper()
-    tld = config[DOMAIN].get(CONF_DOMAIN)
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
 
-    hass.data[DATA_BINANCE] = binance_data = BinanceData(api_key, api_secret, tld)
+    for instance in config[DOMAIN]:
+        api_key = instance[CONF_API_KEY]
+        api_secret = instance[CONF_API_SECRET]
+        name = instance.get(CONF_NAME)
+        balances = instance.get(CONF_BALANCES)
+        tickers = instance.get(CONF_EXCHANGES)
+        native_currency = instance.get(CONF_NATIVE_CURRENCY).upper()
+        tld = instance.get(CONF_DOMAIN)
 
-    if not hasattr(binance_data, "balances"):
-        pass
-    else:
-        for balance in binance_data.balances:
-            if not balances or balance["asset"] in balances:
-                balance["name"] = name
-                balance["native"] = native_currency
-                load_platform(hass, "sensor", DOMAIN, balance, config)
+        binance_data = BinanceData(api_key, api_secret, tld)
+        hass.data[DOMAIN][name] = binance_data
 
-    if not hasattr(binance_data, "tickers"):
-        pass
-    else:
-        for ticker in binance_data.tickers:
-            if not tickers or ticker["symbol"] in tickers:
-                ticker["name"] = name
-                load_platform(hass, "sensor", DOMAIN, ticker, config)
+        if hasattr(binance_data, "balances"):
+            for balance in binance_data.balances:
+                if not balances or balance["asset"] in balances:
+                    balance["name"] = name
+                    balance["native"] = native_currency
+                    load_platform(hass, "sensor", DOMAIN, balance, instance)
+
+        if hasattr(binance_data, "tickers"):
+            for ticker in binance_data.tickers:
+                if not tickers or ticker["symbol"] in tickers:
+                    ticker["name"] = name
+                    load_platform(hass, "sensor", DOMAIN, ticker, instance)
 
     return True
 
