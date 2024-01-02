@@ -3,6 +3,7 @@ Binance exchange sensor
 """
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 CURRENCY_ICONS = {
     "BTC": "mdi:currency-btc",
@@ -26,7 +27,7 @@ ATTR_NATIVE_BALANCE = "native_balance"
 DATA_BINANCE = "binance_cache"
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
+async def async_setup_platform(hass, config, add_entities, discovery_info=None):
     """Setup the Binance sensors."""
 
     if discovery_info is None:
@@ -53,12 +54,13 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     add_entities([sensor], True)
 
 
-class BinanceSensor(SensorEntity):
+class BinanceSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, binance_data, name, asset, free, locked, native):
-        """Initialize the sensor."""
-        self._binance_data = binance_data
+    def __init__(self, coordinator, name, asset, free, locked, native):
+        """Initialise le capteur."""
+        super().__init__(coordinator)
+        self.coordinator = coordinator
         self._name = f"{name} {asset} Balance"
         self._asset = asset
         self._free = free
@@ -99,9 +101,9 @@ class BinanceSensor(SensorEntity):
             ATTR_LOCKED: f"{self._locked} {self._unit_of_measurement}",
         }
 
-    def update(self):
-        """Update current values."""
-        self._binance_data.update()
+    async def async_update(self):
+        """Mise à jour des valeurs actuelles."""
+        await self.coordinator.async_request_refresh()
         for balance in self._binance_data.balances:
             if balance["asset"] == self._asset:
                 self._state = balance["free"]
@@ -120,16 +122,16 @@ class BinanceSensor(SensorEntity):
                 break
 
 
-class BinanceExchangeSensor(SensorEntity):
+class BinanceExchangeSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Sensor."""
 
-    def __init__(self, binance_data, name, symbol, price):
+    def __init__(self, coordinator, name, symbol, price):
         """Initialize the sensor."""
-        self._binance_data = binance_data
+        super().__init__(coordinator)
+        self.coordinator = coordinator
         self._name = f"{name} {symbol} Exchange"
         self._symbol = symbol
         self._price = price
-        self._unit_of_measurement = None
         self._state = None
 
     @property
@@ -160,9 +162,9 @@ class BinanceExchangeSensor(SensorEntity):
             ATTR_ATTRIBUTION: ATTRIBUTION,
         }
 
-    def update(self):
-        """Update current values."""
-        self._binance_data.update()
+    async def async_update(self):
+        """Mise à jour des valeurs actuelles."""
+        await self.coordinator.async_request_refresh()
         for ticker in self._binance_data.tickers:
             if ticker["symbol"] == self._symbol:
                 self._state = ticker["price"]
