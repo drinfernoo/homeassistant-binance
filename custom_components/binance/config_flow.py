@@ -3,12 +3,15 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.const import CONF_NAME
 import homeassistant.helpers.config_validation as cv
+import logging
 
-DOMAIN = 'binance'
-CONF_DOMAIN = 'com'
+_LOGGER = logging.getLogger(__name__)
+
+DOMAIN = 'binance1'
+CONF_DOMAIN = 'domain'  # It should match with the actual expected configuration key
 CONF_API_KEY = 'api_key'
 CONF_API_SECRET = 'api_secret'
-CONF_NATIVE_CURRENCY = 'USD'
+CONF_NATIVE_CURRENCY = 'native_currency'  # It should match with the actual expected configuration key
 CONF_BALANCES = 'balances'
 CONF_EXCHANGES = 'exchanges'
 
@@ -16,6 +19,24 @@ class BinanceConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
+    async def async_step_import(self, import_config):
+        """Handle a flow import."""
+
+        existing_entry = await self._async_find_existing_entry(import_config)
+        if existing_entry:
+            # Update the existing entry if an API key match is found
+            self.hass.config_entries.async_update_entry(existing_entry, data=import_config)
+            return self.async_abort(reason="already_configured")
+        
+        return self.async_create_entry(title="Binance (imported from YAML)", data=import_config)
+    
+    async def _async_find_existing_entry(self, import_config):
+        """Find an existing config entry."""
+        for entry in self._async_current_entries():
+            if entry.data[CONF_API_KEY] == import_config[CONF_API_KEY]:
+                return entry
+        return None
+    
     async def async_step_user(self, user_input=None):
         errors = {}
 
