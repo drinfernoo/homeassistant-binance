@@ -63,6 +63,7 @@ async def async_setup_entry(hass, entry):
         async_load_platform(hass, 'sensor', DOMAIN, {'entry_id': entry.entry_id}, entry.data)
     )
 
+
     return True
 
 async def async_unload_entry(hass, entry):
